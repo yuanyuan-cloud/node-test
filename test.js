@@ -17,6 +17,10 @@ app.get('/hello', (request, response) => {
   response.send('Hello node')
 })
 
+app.post('/login', (req, res) => {
+  console.log('code: '+req.body.code);
+})
+
 // post请求
 app.post('/server', (request, response) => {
   // 设置响应头 设置允许跨域
