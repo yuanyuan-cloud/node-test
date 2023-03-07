@@ -5,7 +5,12 @@ const {
 } = require('express')
 const express = require('express')
 const request = require('request')
-
+const mysql = require('mysql2');
+const {
+	addUser,getUsers,updateUser,deleteUser,addPost,getPosts,updatePost,deletePost,updateToken,getOpenidByToken
+}  = require('./database.js');
+const multer = require('multer');
+const upload = multer({dest: 'uploads/'})
 
 
 // 2.创建应用
@@ -26,12 +31,6 @@ const wx = {
   secret: '5df63b472a771fa343ff02db1ec3169f'
 }
 
-const db = {
-  session_key: '',
-  openid: ''
-
-}
-
 // 3.创建路由规则
 // get请求
 app.get('/hello', (request, response) => {
@@ -43,30 +42,69 @@ app.get('/hello', (request, response) => {
 
 // 检查用户是否已经登录
 app.get('/checklogin', (req, res) => {
-  var session = db.session_key
-  res.json({
-      is_login: session !== undefined
-  })
+let token = req.query.token;
+console.log('token: '+token);
+let is_login = false;
+if(!token){
+console.log('token不存在');
+}else{
+getOpenidByToken(token).then((openid) => {
+if(openid) {
+console.log(`token ${token}对应的openid是${openid},用户已登录`);
+ is_login = true;
+} else {
+console.log(`找不到 token ${token}对应的openid`);
+}
+}).catch((err)=>{
+console.error(`查询token ${token}时出错：${err}`);
+});
+}   
+ res.json({
+is_login
+}) 
 })
 
+async function login(req, res) {
+try {
+const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${wx.appid}&secret=${wx.secret}&js_code=${req.body.code}&grant_type=authorization_code`;
+const session = await new Promise((resolve, reject) => {
+request(url, (err, response, body) => {
+if (err) reject(err);
+else resolve(JSON.parse(body));
+});
+});
+const session_key = session.session_key;
+const openid = session.openid;
+await addUser(session_key, openid, 'avatar');
+const token = 'token_' + new Date().getTime();
+const id = await updateToken(openid, token);
+console.log(`插入成功，id为${id}`);
+res.json({
+token: token
+});
+} catch (err) {
+console.error(err);
+res.status(500).json({ error: err.message });
+}
+}
 
-app.post('/login', (req, res) => {
-  console.log('code: ' + req.body.code);
-  // code,appid,secret都有了就发起请求到微信接口服务校验
-  var url = 'https://api.weixin.qq.com/sns/jscode2session?appid=' + wx.appid + '&secret=' + wx.secret + '&js_code=' + req.body.code + '&grant_type=authorization_code'
-  request(url, (err, response, body) => {
-    //	可以获取到 session_key(会话信息) 、 openid(用户唯一标识)
-    // console.log('session: ' + body)
-    //  上面的session信息是字符串数据，通过JSON.parse()转成js对象
-    var session = JSON.parse(body)
-    db.session_key = session.session_key;
-    db.openid = session.openid;
-    
-  })
-  let token = 'token_' + new Date().getTime();
-  res.json({
-    token: token
-  })
+app.post('/post',(req,res)=>{
+const content = req.body.content;
+const avatar = req.body.avatar;
+const tmstamp = req.body.tmstamp;
+console.log(content);
+console.log(avatar);
+console.log(tmstamp);
+res.send('post successfully!');
+});
+
+app.post('/upload',upload.single('image'),function(req,res) {
+console.log(req.file);
+res.send('上传图片成功');
+})
+
+app.post('/login', async (req,res) => {
+await login(req,res);
 })
 
 // post请求
@@ -78,6 +116,12 @@ app.post('/server', (request, response) => {
   let query = request.query
   // 设置响应体，返回请求参数
   response.status(200).send(query)
+})
+
+// 接收用户编辑发帖内容
+app.post('/postCard',(request, response) => {
+ let text = request.body.text;
+  response.status(200).send(text);
 })
 
 // 4.监听端口启动服务
