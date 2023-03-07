@@ -10,8 +10,7 @@ const {
 	addUser,getUsers,updateUser,deleteUser,addPost,getPosts,updatePost,deletePost,updateToken,getOpenidByToken
 }  = require('./database.js');
 const multer = require('multer');
-const upload = multer({dest: 'uploads/'})
-
+const path = require('path');
 
 // 2.创建应用
 const app = express()
@@ -39,6 +38,22 @@ app.get('/hello', (request, response) => {
   // 设置响应体
   response.send('Hello node')
 })
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/')
+  },
+  filename: function (req, file, cb) {
+    const extname = path.extname(file.originalname);
+    cb(null, 'image-' + Date.now() + extname);
+  }
+});
+
+const upload = multer({ storage: storage });
+app.post('/upload', upload.single('image'), function(req, res) {
+  console.log(req.file);
+  res.send('上传图片成功');
+});
 
 // 检查用户是否已经登录
 app.get('/checklogin', (req, res) => {
@@ -98,10 +113,6 @@ console.log(tmstamp);
 res.send('post successfully!');
 });
 
-app.post('/upload',upload.single('image'),function(req,res) {
-console.log(req.file);
-res.send('上传图片成功');
-})
 
 app.post('/login', async (req,res) => {
 await login(req,res);
