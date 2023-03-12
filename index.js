@@ -4,6 +4,7 @@ const {
   response
 } = require('express')
 const express = require('express')
+const cors = require('cors')
 const request = require('request')
 const mysql = require('mysql2');
 const {
@@ -14,6 +15,11 @@ const path = require('path');
 
 // 2.创建应用
 const app = express()
+app.use(cors({
+  origin: 'http://127.0.0.1:5173',
+  credentials: true,
+  allowedHeaders: ['Content-Type','token']
+}))
 
 const bodyParser = require('body-parser')
 
@@ -133,6 +139,16 @@ app.post('/server', (request, response) => {
 app.post('/postCard',(request, response) => {
  let text = request.body.text;
   response.status(200).send(text);
+})
+
+// 后台管理系统部分
+app.post('/auth/admin_login', (request, response) => {
+  // console.log(request.body);
+  let result = {
+    token: 'token',
+    success: true
+  };
+  response.status(200).json(result);
 })
 
 // 4.监听端口启动服务

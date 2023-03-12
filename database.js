@@ -19,7 +19,7 @@ const [rows] = await pool.query(
 [openid]
 );
 if(rows.length >0){
-console.log(`用户已存在，id为${rows[0].id}`);
+console.log(`用户已存在,id为${rows[0].id}`);
 return rows[0].id;
 } else {
 const [result] = await pool.query(
