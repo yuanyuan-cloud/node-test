@@ -7,6 +7,7 @@ const express = require('express')
 const cors = require('cors')
 const request = require('request')
 const mysql = require('mysql2');
+const mime = require('mime');
 const {
 	addUser,getUsers,updateUser,deleteUser,addPost,getPosts,updatePost,deletePost,updateToken,getOpenidByToken
 }  = require('./database.js');
@@ -150,6 +151,17 @@ app.post('/auth/admin_login', (request, response) => {
   };
   response.status(200).json(result);
 })
+
+// 服务端图片供应
+app.get('/images/upload/:filename',(req,res)=>{
+const fileName = req.params.filename;
+const file = __dirname + '/uploads/' + fileName;
+const mimeType = mime.getType(file); 
+
+res.setHeader('Content-Type', mimeType);
+res.sendFile(file);
+});
+
 
 // 4.监听端口启动服务
 app.listen(3000, () => {
